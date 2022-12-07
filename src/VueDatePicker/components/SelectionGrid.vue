@@ -2,7 +2,7 @@
     <div ref="gridWrapRef" :class="dpOverlayClass" role="dialog" tabindex="0" @keydown.esc="handleEsc">
         <div :class="containerClass" role="grid">
             <div class="dp__selection_grid_header"><slot name="header"></slot></div>
-            <div class="dp__overlay_row" v-for="(row, i) in mappedItems" :key="getKey(i)" role="row">
+            <div class="dp__overlay_row" v-for="(row, i) in mappedItems" :key="i" role="row">
                 <div
                     v-for="(col, ind) in row"
                     role="gridcell"
@@ -12,6 +12,7 @@
                     :aria-disabled="col.className.dp__overlay_cell_disabled"
                     :ref="(el) => assignRef(el, col, i, ind)"
                     tabindex="0"
+                    :data-test="col.text"
                     @click="onClick(col.value)"
                     @keydown.enter="onClick(col.value)"
                     @keydown.space="onClick(col.value)"
@@ -25,8 +26,9 @@
             </div>
             <div
                 v-if="$slots['button-icon']"
+                v-show="!hideNavigationButtons(type)"
                 role="button"
-                :aria-label="ariaLabels.toggleOverlay"
+                :aria-label="ariaLabels?.toggleOverlay"
                 :class="actionButtonClass"
                 tabindex="0"
                 ref="toggleButton"
@@ -40,47 +42,51 @@
 </template>
 
 <script lang="ts" setup>
-    import { computed, inject, nextTick, onBeforeUpdate, onMounted, onUnmounted, ref } from 'vue';
-    import type { PropType, ComputedRef, Ref } from 'vue';
+    import { computed, nextTick, onBeforeUpdate, onMounted, onUnmounted, ref } from 'vue';
     import { setMonth, setYear } from 'date-fns';
 
-    import type { IDefaultSelect, DynamicClass, AreaLabels } from '@/interfaces';
-
-    import { getKey, unrefElement } from '@/utils/util';
+    import { unrefElement, convertType } from '@/utils/util';
+    import { useArrowNavigation, useUtils } from '@/components/composables';
     import { isDateBetween, isDateEqual } from '@/utils/date-utils';
-    import { ariaLabelsKey, arrowNavigationKey, autoApplyKey, textInputKey } from '@/utils/props';
-    import { useArrowNavigation } from '@/components/composition/arrow-navigate';
 
-    const emit = defineEmits(['update:modelValue', 'selected', 'toggle', 'reset-flow']);
+    import type { PropType } from 'vue';
+    import type { IDefaultSelect, DynamicClass, Flow, AriaLabels } from '@/interfaces';
+    import type { AllPropsType } from '@/utils/props';
+
+    const { setSelectionGrid, buildMultiLevelMatrix, setMonthPicker } = useArrowNavigation();
+
+    const emit = defineEmits(['update:model-value', 'selected', 'toggle', 'reset-flow']);
 
     const props = defineProps({
         items: { type: Array as PropType<IDefaultSelect[][]>, default: () => [] },
         modelValue: { type: [String, Number] as PropType<string | number>, default: null },
         multiModelValue: { type: Array as PropType<Date[]>, default: () => [] },
         disabledValues: { type: Array as PropType<number[]>, default: () => [] },
-        minValue: { type: [Number, String] as PropType<number | string>, default: null },
-        maxValue: { type: [Number, String] as PropType<number | string>, default: null },
+        minValue: { type: [Number, String] as PropType<number | string | null>, default: null },
+        maxValue: { type: [Number, String] as PropType<number | string | null>, default: null },
         year: { type: Number as PropType<number>, default: 0 },
         skipActive: { type: Boolean as PropType<boolean>, default: false },
-        headerRefs: { type: Array as PropType<HTMLElement[]>, default: () => [] },
+        headerRefs: { type: Array as PropType<(HTMLElement | null)[]>, default: () => [] },
         skipButtonRef: { type: Boolean as PropType<boolean>, default: false },
         monthPicker: { type: Boolean as PropType<boolean>, default: false },
         yearPicker: { type: Boolean as PropType<boolean>, default: false },
         escClose: { type: Boolean as PropType<boolean>, default: true },
+        type: { type: String as PropType<Flow>, default: null },
+        arrowNavigation: { type: Boolean as PropType<boolean>, default: false },
+        autoApply: { type: Boolean as PropType<boolean>, default: false },
+        textInput: { type: Boolean as PropType<boolean>, default: false },
+        ariaLabels: { type: Object as PropType<AriaLabels>, default: () => ({}) },
+        hideNavigation: { type: Array as PropType<Flow[]>, default: () => [] },
     });
+
+    const { hideNavigationButtons } = useUtils(props as unknown as AllPropsType);
 
     const scrollable = ref(false);
     const selectionActiveRef = ref<HTMLElement | null>(null);
     const gridWrapRef = ref(null);
     const elementRefs = ref<HTMLElement[][]>([]);
-    const autoApply = inject(autoApplyKey, false);
-    const textInput = inject(textInputKey, ref(false));
-    const ariaLabels = inject<ComputedRef<AreaLabels>>(ariaLabelsKey);
-    const arrowNavigation = inject<Ref<boolean>>(arrowNavigationKey);
     const hoverValue = ref();
     const toggleButton = ref<HTMLElement | null>();
-
-    const { setSelectionGrid, buildMultiLevelMatrix, setMonthPicker } = useArrowNavigation();
 
     onBeforeUpdate(() => {
         selectionActiveRef.value = null;
@@ -98,7 +104,7 @@
     onUnmounted(() => handleArrowNav(false));
 
     const handleArrowNav = (value: boolean): void => {
-        if (arrowNavigation?.value) {
+        if (props.arrowNavigation) {
             if (props.headerRefs?.length) {
                 setMonthPicker(value);
             } else {
@@ -110,7 +116,7 @@
     const focusGrid = (): void => {
         const elm = unrefElement(gridWrapRef);
         if (elm) {
-            if (!textInput.value) {
+            if (!props.textInput) {
                 elm.focus({ preventScroll: true });
             }
             scrollable.value = elm.clientHeight < elm.scrollHeight;
@@ -128,6 +134,10 @@
         dp__overlay_col: true,
     }));
 
+    const isActive = (itemVal: IDefaultSelect) => {
+        if (props.skipActive) return false;
+        return itemVal.value === props.modelValue;
+    };
     /**
      * Simple map for building a grid, just add dynamic classes for each cell
      */
@@ -148,9 +158,7 @@
                                   ),
                               ),
                           )
-                        : props.skipActive
-                        ? false
-                        : itemVal.value === props.modelValue;
+                        : isActive(itemVal);
 
                     return {
                         ...itemVal,
@@ -175,7 +183,7 @@
             dp__button: true,
             dp__overlay_action: true,
             dp__over_action_scroll: scrollable.value,
-            dp__button_bottom: autoApply,
+            dp__button_bottom: props.autoApply,
         }),
     );
 
@@ -228,7 +236,7 @@
      */
     const onClick = (val: string | number): void => {
         if (!props.disabledValues.some((value) => value === val) && !checkMinMaxValue(val)) {
-            emit('update:modelValue', val);
+            emit('update:model-value', val);
             emit('selected');
         }
     };
@@ -256,24 +264,28 @@
         }
     };
 
-    const assignRef = (el: HTMLElement, col: IDefaultSelect, rowInd: number, colInd: number): void => {
+    const assignRef = (el: any, col: IDefaultSelect, rowInd: number, colInd: number): void => {
         if (el) {
             if (col.value === +props.modelValue && !props.disabledValues.includes(col.value)) {
                 selectionActiveRef.value = el;
             }
-            if (arrowNavigation?.value) {
+            if (props.arrowNavigation) {
                 if (Array.isArray(elementRefs.value[rowInd])) {
                     elementRefs.value[rowInd][colInd] = el;
                 } else {
                     elementRefs.value[rowInd] = [el];
                 }
-                const refs = props.headerRefs?.length
-                    ? [props.headerRefs].concat(elementRefs.value)
-                    : elementRefs.value.concat([props.skipButtonRef ? [] : [toggleButton.value as HTMLElement]]);
-
-                buildMultiLevelMatrix(refs, props.headerRefs?.length ? 'monthPicker' : 'selectionGrid');
+                buildMatrix();
             }
         }
+    };
+
+    const buildMatrix = () => {
+        const refs = props.headerRefs?.length
+            ? [props.headerRefs].concat(elementRefs.value)
+            : elementRefs.value.concat([props.skipButtonRef ? [] : [toggleButton.value as HTMLElement]]);
+
+        buildMultiLevelMatrix(convertType(refs), props.headerRefs?.length ? 'monthPicker' : 'selectionGrid');
     };
 
     defineExpose({ focusGrid });

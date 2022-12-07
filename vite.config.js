@@ -26,11 +26,12 @@ export default defineConfig({
             fileName: 'vue-datepicker',
         },
         rollupOptions: {
-            external: f === 'iife' ? ['vue'] : ['vue', 'date-fns'],
+            external: f === 'iife' ? ['vue'] : ['vue', 'date-fns', 'date-fns-tz'],
             output: {
                 globals: {
                     vue: 'Vue',
                     'date-fns': 'dateFns',
+                    'date-fns-tz': 'dateFnsTz',
                 },
             },
         },
@@ -38,5 +39,9 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
+        coverage: {
+            reporter: ['lcov'],
+            reportsDirectory: resolve(__dirname, 'coverage'),
+        },
     },
 });

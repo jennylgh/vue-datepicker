@@ -4,6 +4,10 @@
 ### The most complete datepicker solution for Vue 3
 
 [![License](https://img.shields.io/npm/l/@vuepic/vue-datepicker)](https://github.com/Vuepic/vue-datepicker/blob/main/LICENSE) [![npm](https://img.shields.io/npm/v/@vuepic/vue-datepicker)](https://www.npmjs.com/package/@vuepic/vue-datepicker) ![Downloads](https://img.shields.io/npm/dm/@vuepic/vue-datepicker) [![Open issues](https://img.shields.io/github/issues-raw/Vuepic/vue-datepicker)](https://github.com/Vuepic/vue-datepicker/issues) ![CI](https://img.shields.io/github/workflow/status/Vuepic/vue-datepicker/CI?label=CI) ![Release date](https://img.shields.io/github/release-date/Vuepic/vue-datepicker)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Vuepic_vue-datepicker&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Vuepic_vue-datepicker)
+
+
+
 
 [DOCUMENTATION](https://vue3datepicker.com/)
 
@@ -22,6 +26,7 @@
 - Multiple calendars
 - Text input
 - UTC support
+- Timezones
 - Locale support
 - Week numbers
 - Custom `v-model`

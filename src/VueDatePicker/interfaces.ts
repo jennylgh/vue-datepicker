@@ -1,5 +1,5 @@
-import type { ComponentPublicInstance, ExtractPropTypes, Ref } from 'vue';
-import type { MenuProps } from './utils/props';
+import type { ComponentPublicInstance, Ref } from 'vue';
+import type { AllPropsType } from '@/utils/props';
 
 export type DynamicClass = Record<string, boolean>;
 
@@ -18,13 +18,11 @@ export enum OpenPosition {
     right = 'right',
 }
 
-export type IFormat =
-    | string
-    | ((date: Date | Date[] | ITimeValue | ITimeValue[] | IMonthValue | IMonthValue[]) => string);
+export type IFormat = string | ((date: Date | Date[]) => string);
 
 export type InternalModuleValue = Date | Date[] | null;
 
-export interface IDateFilter {
+export interface DateFilter {
     months: number[];
     years: number[];
     times: { hours: number[]; minutes: number[]; seconds: number[] };
@@ -34,7 +32,7 @@ export interface ICalendarDay {
     text: number | string;
     value: Date;
     current: boolean;
-    classData?: DynamicClass;
+    classData: DynamicClass;
     marker?: IMarker | null;
 }
 
@@ -42,7 +40,7 @@ export interface ICalendarDate {
     days: ICalendarDay[];
 }
 
-export interface ITextInputOptions {
+export interface TextInputOptions {
     enterSubmit: boolean;
     tabSubmit: boolean;
     openMenu: boolean;
@@ -50,12 +48,12 @@ export interface ITextInputOptions {
     format?: string | string[] | ((value: string) => Date | null);
 }
 
-export interface IMonthValue {
+export interface MonthModel {
     month: number | string;
     year: number | string;
 }
 
-export interface ITimeValue {
+export interface TimeModel {
     hours: number | string;
     minutes: number | string;
     seconds: number | string;
@@ -66,36 +64,16 @@ export type ModelValue =
     | Date[]
     | string
     | string[]
-    | ITimeValue
-    | ITimeValue[]
-    | IMonthValue
-    | IMonthValue[]
+    | TimeModel
+    | TimeModel[]
+    | MonthModel
+    | MonthModel[]
     | number
     | number[]
     | null;
 
 export type WeekStartNum = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type WeekStartStr = '0' | '1' | '2' | '3' | '4' | '5' | '6';
-
-export interface MenuPropsWithExtend extends ExtractPropTypes<typeof MenuProps> {
-    internalModelValue: InternalModuleValue;
-    multiCalendars: number;
-    filters: IDateFilter;
-    openOnTop: boolean;
-}
-
-export type MenuProps = MenuPropsWithExtend & { [key: string]: unknown };
-
-export interface UseMonthYearPick {
-    months: IDefaultSelect[];
-    years: IDefaultSelect[];
-    filters: IDateFilter;
-    year: number;
-    month: number;
-    preventMinMaxNavigation: boolean;
-    maxDate: Date | string;
-    minDate: Date | string;
-}
 
 export type MaybeRef<T> = T | Ref<T>;
 export type Fn = () => void;
@@ -117,11 +95,11 @@ export interface OnClickOutsideOptions<E extends keyof OnClickOutsideEvents> ext
 export interface IMarker {
     date: Date | string;
     type?: 'dot' | 'line';
-    tooltip?: { text?: string; html?: string; color?: string }[];
+    tooltip?: { text?: string; slot?: string; color?: string }[];
     color?: string;
 }
 
-export interface ITransition {
+export interface Transition {
     menuAppear: string;
     open: string;
     close: string;
@@ -132,13 +110,14 @@ export interface ITransition {
 }
 
 export type IDisableDates = (date: Date) => boolean;
-export type ITimeType = 'hours' | 'minutes' | 'seconds';
+export type TimeType = 'hours' | 'minutes' | 'seconds';
 
-export type AltPosition = boolean | ((el: HTMLElement | null) => { top: string; left: string; transform: string });
+export type CustomAltPosition = (el: HTMLElement | null) => { top: string; left: string; transform: string };
+export type AltPosition = boolean | CustomAltPosition;
 
 export type PresetRange = { label: string; range: Date[] | string[]; style?: Record<string, string>; slot?: string };
 
-export type Flow = ('month' | 'year' | 'calendar' | 'time' | 'minutes' | 'hours' | 'seconds')[];
+export type Flow = 'month' | 'year' | 'calendar' | 'time' | 'minutes' | 'hours' | 'seconds';
 export type MenuChildCmp = 'timePicker' | 'monthYearInput' | 'calendar';
 
 export interface MonthYearPickerRef {
@@ -146,7 +125,7 @@ export interface MonthYearPickerRef {
     toggleYearPicker: (auto: boolean) => void;
 }
 
-export interface AreaLabels {
+export interface AriaLabels {
     toggleOverlay: string;
     menu: string;
     input: string;
@@ -154,26 +133,26 @@ export interface AreaLabels {
     calendarDays: string;
     openTimePicker: string;
     closeTimePicker: string;
-    incrementValue: (type: ITimeType) => string;
-    decrementValue: (type: ITimeType) => string;
-    openTpOverlay: (type: ITimeType) => string;
+    incrementValue: (type: TimeType) => string;
+    decrementValue: (type: TimeType) => string;
+    openTpOverlay: (type: TimeType) => string;
     amPmButton: string;
     openYearsOverlay: string;
     openMonthsOverlay: string;
     nextMonth: string;
     prevMonth: string;
-    day: (dayVal: ICalendarDay) => string | null;
+    day: (dayVal: ICalendarDay) => string;
 }
 
-export interface CalendarRef {
+export interface CalendarRef extends ComponentPublicInstance {
     triggerTransition: (m: number, year: number) => void;
 }
 
-export interface TimePickerRef {
-    toggleTimePicker: (show: boolean, flow: boolean, child?: 'hours' | 'minutes' | 'seconds') => void;
+export interface TimePickerRef extends Element {
+    toggleTimePicker: (show: boolean, flow: boolean, child?: TimeType) => void;
 }
 
-export interface TimeInputRef {
+export interface TimeInputRef extends Element {
     openChildCmp: (child: string) => void;
 }
 
@@ -189,3 +168,11 @@ export type TimeOverlayCheck = 'noHoursOverlay' | 'noMinutesOverlay' | 'noSecond
 export type ModelFormatType = 'timestamp' | 'format';
 
 export type ModelType = ModelFormatType | string;
+
+export type DateTimeSetter = number | string | null;
+
+export type DateValue = Date | string | null;
+
+export interface ExtendedProps extends AllPropsType {
+    internalModelValue: InternalModuleValue;
+}
